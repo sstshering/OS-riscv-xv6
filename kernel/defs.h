@@ -63,6 +63,7 @@ void            ramdiskrw(struct buf*);
 void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
+uint64          nfreepages();
 
 // log.c
 void            initlog(int, struct superblock*);
@@ -105,6 +106,16 @@ int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
 int             procinfo(uint64);
+int             wait2(uint64, uint64);
+uint64          sys_uptime(void);
+int             getpriority(uint64 pr);
+int             setpriority(uint64 pr);
+
+//Task 1a
+struct mmr_lust* get_mmr_list(int);
+int alloc_mmr_listid(void);
+void dealloc_mmr_listid(int);
+void mmrlistinit(void);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
@@ -123,7 +134,7 @@ void            releasesleep(struct sleeplock*);
 int             holdingsleep(struct sleeplock*);
 void            initsleeplock(struct sleeplock*, char*);
 
-// string.c
+// string.c;
 int             memcmp(const void*, const void*, uint);
 void*           memmove(void*, const void*, uint);
 void*           memset(void*, int, uint);
@@ -171,6 +182,7 @@ uint64          walkaddr(pagetable_t, uint64);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
+int             mapvpages(pagetable_t, unit64, unint64);
 
 // plic.c
 void            plicinit(void);
