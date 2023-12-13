@@ -21,3 +21,13 @@
 #define SYS_mkdir  20
 #define SYS_close  21
 #define SYS_getprocs  22
+#define SYS_wait2  23
+#define SYS_getpriority 24
+#define SYS_setpriority 25
+#define SYS_freepmem    26
+#define SYS_mmap  27
+#define SYS_munmap  28
+#define SYS_sem_init 29
+#define SYS_sem_destroy 30
+#define SYS_sem_wait 31
+#define SYS_sem_post 32

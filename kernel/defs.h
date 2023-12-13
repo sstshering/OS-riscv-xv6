@@ -106,19 +106,22 @@ int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
 int             procinfo(uint64);
-int             wait2(uint64, uint64);
+int             wait2(uint64,uint64);
 uint64          sys_uptime(void);
 int             getpriority(uint64 pr);
 int             setpriority(uint64 pr);
-
-//Task 1a
-struct mmr_lust* get_mmr_list(int);
+struct mmr_list* get_mmr_list(int);
 int alloc_mmr_listid(void);
 void dealloc_mmr_listid(int);
 void mmrlistinit(void);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
+
+// semaphore.c
+void            seminit(void);
+int             semalloc(void);
+void            semadealloc(sem_t);
 
 // spinlock.c
 void            acquire(struct spinlock*);
@@ -134,7 +137,7 @@ void            releasesleep(struct sleeplock*);
 int             holdingsleep(struct sleeplock*);
 void            initsleeplock(struct sleeplock*, char*);
 
-// string.c;
+// string.c
 int             memcmp(const void*, const void*, uint);
 void*           memmove(void*, const void*, uint);
 void*           memset(void*, int, uint);
@@ -174,7 +177,8 @@ pagetable_t     uvmcreate(void);
 void            uvminit(pagetable_t, uchar *, uint);
 uint64          uvmalloc(pagetable_t, uint64, uint64);
 uint64          uvmdealloc(pagetable_t, uint64, uint64);
-int             uvmcopy(pagetable_t, pagetable_t, uint64);
+int             uvmcopy(pagetable_t, pagetable_t, uint64, uint64);
+int             uvmcopyshared(pagetable_t, pagetable_t, uint64, uint64);
 void            uvmfree(pagetable_t, uint64);
 void            uvmunmap(pagetable_t, uint64, uint64, int);
 void            uvmclear(pagetable_t, uint64);
