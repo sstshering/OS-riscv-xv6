@@ -2,6 +2,8 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 
+
+
 int main(int argc, char *argv[]) {
 
         // for-loop to go through the arguments in the command line
@@ -33,7 +35,7 @@ int main(int argc, char *argv[]) {
             }
         }
         
-   //exit(0);
-    return 0;
 
+        
+    exit(0);
 }

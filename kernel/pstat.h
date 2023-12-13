@@ -6,6 +6,7 @@ struct pstat {
   char name[16];   // Parent command name
 };
 
-struct rusage{
-  uint cputime; //task 3
+struct rusage
+{
+  uint cputime; // Task 3 
 };

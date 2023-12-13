@@ -21,7 +21,7 @@ static void freeproc(struct proc *p);
 
 extern char trampoline[]; // trampoline.S
 
-struct proc time; //proc.h
+struct proc time; // from proc.h
 
 // helps ensure that wakeups of wait()ing
 // parents are not lost. helps obey the
@@ -123,12 +123,15 @@ found:
   p->pid = allocpid();
   p->state = USED;
 
+  time.cputime = 0; // process is created so cputime is initialized
+  
+
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
     release(&p->lock);
 
-    time.cputime++; //increments as process time expire
+    time.cputime++; // the process has expired its time slice so cputime incraments
 
     return 0;
   }
@@ -690,6 +693,7 @@ procinfo(uint64 addr)
   return nprocs;
 }
 
+
 int
 wait2(uint64 addr1, uint64 addr2)
 { 
@@ -745,6 +749,7 @@ wait2(uint64 addr1, uint64 addr2)
     }
     
     // Wait for a child to exit.
-    sleep(p, &wait_lock);  //DOC: wait-sleep
-  } 
+    sleep(p, &wait_lock); 
+  }
+  
 }
