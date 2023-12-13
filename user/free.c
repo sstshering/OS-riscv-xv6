@@ -17,7 +17,7 @@ main(int argc, char *argv[])
 	}
     }
 
-    printf("%l\n", freepmem()/divisor);
+    printf("%l\n", freepmem() / divisor);
 
     exit(0);
 }
