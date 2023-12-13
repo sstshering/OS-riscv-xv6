@@ -1,7 +1,7 @@
 struct stat;
 struct rtcdate;
 struct pstat;
-struct rusage; 
+struct rusage;
 struct proc;
 
 // system calls
@@ -27,9 +27,10 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int getprocs(struct pstat*);
-int wait2(int*, struct rusage*); 
+int wait2(int*, struct rusage*);
 int getpriority(int*, struct proc*);
 int setpriority(int);
+uint64 freepmem(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

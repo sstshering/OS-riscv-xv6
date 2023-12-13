@@ -63,6 +63,7 @@ void            ramdiskrw(struct buf*);
 void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
+uint64          nfreepages();
 
 // log.c
 void            initlog(int, struct superblock*);
@@ -105,9 +106,9 @@ int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
 int             procinfo(uint64);
-int             wait2(uint64, uint64); 
-uint            sys_uptime(void);
-int             getpriority(unit64 pr);
+int             wait2(uint64,uint64);
+uint64          sys_uptime(void);
+int             getpriority(uint64 pr);
 int             setpriority(uint64 pr);
 
 // swtch.S
@@ -127,7 +128,7 @@ void            releasesleep(struct sleeplock*);
 int             holdingsleep(struct sleeplock*);
 void            initsleeplock(struct sleeplock*, char*);
 
-// string.c;
+// string.c
 int             memcmp(const void*, const void*, uint);
 void*           memmove(void*, const void*, uint);
 void*           memset(void*, int, uint);

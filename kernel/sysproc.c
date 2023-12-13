@@ -41,14 +41,25 @@ sys_wait(void)
 uint64
 sys_sbrk(void)
 {
+  
   int addr;
   int n;
 
   if(argint(0, &n) < 0)
     return -1;
+  
   addr = myproc()->sz;
+  if(n > 0){
+    myproc()->sz = myproc()->sz + n;
+  }else{
+    uint sz = myproc()->sz;
+    myproc()->sz = uvmdealloc(myproc()->pagetable, sz, sz+n);
+  }
+  /*
   if(growproc(n) < 0)
     return -1;
+  */
+
   return addr;
 }
 
@@ -108,19 +119,18 @@ sys_getprocs(void)
   return(procinfo(addr));
 }
 
-//task 3
 uint64
-sys_wait2(void)
-{
+sys_wait2(void)     // Task 3 requirement
+{ 
   uint64 p1;
   uint64 p2;
-  if(argaddr(0,&p1)<0 || argadde(1, &p2)<0)
+  if(argaddr(0, &p1) < 0 || argaddr(1, &p2) < 0)
     return -1;
-    
-  return wait2(p1,p2);
+
+  return wait2(p1, p2); // status
 }
 
-// add get and set priorty
+// add get and set priorty, set: getting the priorty and getting given priority in a0 like argint() int num = p->trapframe->a0
 uint64
 sys_getpriority(void)
 {
@@ -135,4 +145,9 @@ sys_setpriority(void)
   p->trapframe->a0 = pr;
   
   return setpriority(p->trapframe->a0);
+}
+
+uint64
+sys_freepmem(void){
+ return (nfreepages() * PGSIZE);
 }

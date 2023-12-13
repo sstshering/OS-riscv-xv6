@@ -80,3 +80,22 @@ kalloc(void)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
 }
+
+uint64 nfreepages(){
+  //traverse kernel's free memomry
+  // list + count + nodes
+  // look at video "kernel-19"
+  // kmem.freelist, counting the nodes from the linked list
+  struct run *r;
+  r = kmem.freelist;
+  // aquire the look
+  acquire(&kmem.lock);
+  int count = 0;
+  while(r != 0){
+    count++;
+    r = r->next;
+  }
+  // release the look
+  release(&kmem.lock);
+  return count;
+}
