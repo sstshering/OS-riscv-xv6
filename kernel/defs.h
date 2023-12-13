@@ -107,7 +107,7 @@ int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
 int             procinfo(uint64);
 int             wait2(uint64,uint64);
-uint64          sys_uptime(void);
+uint            sys_uptime(void);
 int             getpriority(uint64 pr);
 int             setpriority(uint64 pr);
 
