@@ -748,3 +748,22 @@ wait2(uint64 addr1, uint64 addr2)
     sleep(p, &wait_lock);  //DOC: wait-sleep
   } 
 }
+
+// looking for current proccess priority
+int getpriority(uint64 pr){
+  struct proc *p = myproc();
+  
+  int prior = p->priority;
+  return prior;
+
+}
+
+
+int setpriority(uint64 pr){
+  struct proc *p = myproc();
+
+  struct proc prior;
+
+  prior.priority = p->priority;
+  return prior.priority;
+}

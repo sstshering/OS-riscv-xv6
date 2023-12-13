@@ -119,3 +119,20 @@ sys_wait2(void)
     
   return wait2(p1,p2);
 }
+
+// add get and set priorty
+uint64
+sys_getpriority(void)
+{
+  return getpriority(myproc()->priority);
+}
+
+uint64
+sys_setpriority(void)
+{
+  int pr = sys_getpriority();
+  struct proc *p = myproc();
+  p->trapframe->a0 = pr;
+  
+  return setpriority(p->trapframe->a0);
+}
