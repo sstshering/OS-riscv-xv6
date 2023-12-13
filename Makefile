@@ -135,7 +135,7 @@ UPROGS=\
 	$U/_sleep\
 	$U/_uptime\
     $U/_time1\
-    $U/_matmul\ 
+    $U/_matmul\
     $U/_time\
 	$U/_ps\
 	$U/_pexec\
