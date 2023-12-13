@@ -129,6 +129,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_getprocs]   sys_getprocs,
+[SYS_wait2]       sys_wait2,  //task 3
 };
 
 void
