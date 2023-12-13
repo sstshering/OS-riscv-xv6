@@ -1,8 +1,6 @@
 #include "kernel/types.h"
 #include "user/user.h"
 
-uint64 freepmem(void);
-
 int
 main(int argc, char *argv[])
 {
