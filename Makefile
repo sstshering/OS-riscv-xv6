@@ -184,4 +184,4 @@ qemu-gdb: $K/kernel .gdbinit fs.img
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 
 user/uptime.o: user/uptime.c
-    $(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $<
