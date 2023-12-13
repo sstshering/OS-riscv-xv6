@@ -37,6 +37,6 @@ int main(int argc, char *argv[]){
                 printf("Something went wrong :(\n");
             }
         }
-
+    return 0; 
     exit(0);
 }
