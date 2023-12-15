@@ -140,7 +140,7 @@ UPROGS=\
     $U/_time1\
     $U/_matmul\  
 	$U/_sleep\
-	$U/_fstat\
+	$U/_fstat
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
