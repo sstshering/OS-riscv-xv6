@@ -138,7 +138,7 @@ UPROGS=\
 	$U/_pstest\
 	$U/_uptime\
     $U/_time1\
-    $U/_matmul\  
+    $U/_matmul\
 	$U/_sleep\
 	$U/_fstat
 
