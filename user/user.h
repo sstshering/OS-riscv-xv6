@@ -25,6 +25,8 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int getprocs(struct pstat*);
+int fstat(char *);
+
 
 // ulib.c
 int stat(const char*, struct stat*);

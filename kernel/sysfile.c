@@ -104,15 +104,37 @@ sys_close(void)
   return 0;
 }
 
+// uint64
+// sys_fstat(void)
+// {
+//   struct file *f;
+//   uint64 st; // user pointer to struct stat
+
+//   if(argfd(0, 0, &f) < 0 || argaddr(1, &st) < 0)
+//     return -1;
+//   return filestat(f, st);
+// }
+
+//hw7
 uint64
 sys_fstat(void)
 {
-  struct file *f;
-  uint64 st; // user pointer to struct stat
+  char *path;
+  struct stat st;
 
-  if(argfd(0, 0, &f) < 0 || argaddr(1, &st) < 0)
+  if (argstr(0, &path, MAXPATH) < 0)
     return -1;
-  return filestat(f, st);
+
+  if (filestat(path, &st) < 0)
+    return -1;
+
+  cprintf("File: %s\n", path);
+  cprintf("Type: %s\n", (st.type == T_FILE) ? "Regular File" : "Directory");
+  cprintf("Size: %d bytes\n", st.size);
+  cprintf("Inode: %d\n", st.ino);
+  cprintf("Links: %d\n", st.nlink);
+
+  return 0;
 }
 
 // Create the path new as a link to the same inode as old.

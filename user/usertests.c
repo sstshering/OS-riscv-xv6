@@ -21,6 +21,11 @@
 
 char buf[BUFSZ];
 
+//lab7
+int fstat(char *path) {
+  return syscall(SYS_fstat, path);
+}
+
 // what if you pass ridiculous pointers to system calls
 // that read user memory with copyin?
 void
