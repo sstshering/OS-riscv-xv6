@@ -121,7 +121,7 @@ void            swtch(struct context*, struct context*);
 // semaphore.c
 void            seminit(void);
 int             semalloc(void);
-void            semadealloc(sem_t);
+void            semadealloc(sem_t arg);
 
 // spinlock.c
 void            acquire(struct spinlock*);
