@@ -133,10 +133,17 @@ UPROGS=\
 	$U/_wc\
 	$U/_zombie\
 	$U/_uptime\
-        $U/_time1\
-        $U/_matmul\
-        $U/_sleep\
-       # $U/_time\
+    $U/_time1\
+    $U/_matmul\
+    $U/_sleep\
+    $U/_time\
+	$U/_pexec\
+	$U/_free\
+	$U/_memory-user\
+	$U/_private\
+	$U/_prodcons1\
+	$U/_prodcons2\
+	$U/_prodcons3\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
