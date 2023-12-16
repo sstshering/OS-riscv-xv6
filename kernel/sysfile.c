@@ -141,11 +141,9 @@ sys_fstat(void)
   f->off = 0;
   f->readable = 1;  
   f->writable = 0; 
-
-  if (filestat(f, (uint64)&st) < 0) {
-    fileclose(f); 
+  
+  if (filestat(f, (uint64)&st) < 0)
     return -1;
-  }
 
   printf("File: %s\n", f);
   printf("Type: %s\n", (st.type == T_FILE) ? "Regular File" : "Directory");
