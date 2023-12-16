@@ -126,9 +126,6 @@ sys_fstat(void)
   if (argstr(0, path, MAXPATH) < 0)
     return -1;
 
-  if ((f = namei(path)) == 0)
-    return -1;
-
   if (filestat(f, (uint64)&st) < 0)
     return -1;
 
