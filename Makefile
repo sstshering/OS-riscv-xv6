@@ -132,21 +132,11 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
-	$U/_sleep\
-	$U/_ps\
-	$U/_pstree\
-	$U/_pstest\
 	$U/_uptime\
-    $U/_time1\
-    $U/_matmul\
-	$U/_sleep\
-	$U/_pexec\
-	$U/_free\
-	$U/_memory-user\
-	$U/_private\
-	$U/_prodcons1\
-	$U/_prodcons2\
-	$U/_prodcons3
+        $U/_time1\
+        $U/_matmul\
+        $U/_sleep\
+       # $U/_time\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
@@ -184,6 +174,3 @@ qemu: $K/kernel fs.img
 qemu-gdb: $K/kernel .gdbinit fs.img
 	@echo "*** Now run 'gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
-
-
-
