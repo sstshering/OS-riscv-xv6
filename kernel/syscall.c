@@ -1,149 +1,604 @@
+//
+// File-system system calls.
+// Mostly argument checking, since we don't trust
+// user code, and calls into file.c and fs.c.
+//
+
 #include "types.h"
-#include "param.h"
-#include "memlayout.h"
 #include "riscv.h"
+#include "defs.h"
+#include "param.h"
+#include "stat.h"
 #include "spinlock.h"
 #include "proc.h"
-#include "syscall.h"
-#include "defs.h"
+#include "fs.h"
+#include "sleeplock.h"
+#include "file.h"
+#include "fcntl.h"
 
-// Fetch the uint64 at addr from the current process.
-int
-fetchaddr(uint64 addr, uint64 *ip)
+// Fetch the nth word-sized system call argument as a file descriptor
+// and return both the descriptor and the corresponding struct file.
+static int
+argfd(int n, int *pfd, struct file **pf)
 {
-  struct proc *p = myproc();
-  if(addr >= p->sz || addr+sizeof(uint64) > p->sz)
+  int fd;
+  struct file *f;
+
+  if(argint(n, &fd) < 0)
     return -1;
-  if(copyin(p->pagetable, (char *)ip, addr, sizeof(*ip)) != 0)
+  if(fd < 0 || fd >= NOFILE || (f=myproc()->ofile[fd]) == 0)
     return -1;
+  if(pfd)
+    *pfd = fd;
+  if(pf)
+    *pf = f;
   return 0;
 }
 
-// Fetch the nul-terminated string at addr from the current process.
-// Returns length of string, not including nul, or -1 for error.
-int
-fetchstr(uint64 addr, char *buf, int max)
+// Allocate a file descriptor for the given file.
+// Takes over file reference from caller on success.
+static int
+fdalloc(struct file *f)
 {
+  int fd;
   struct proc *p = myproc();
-  int err = copyinstr(p->pagetable, buf, addr, max);
-  if(err < 0)
-    return err;
-  return strlen(buf);
-}
 
-static uint64
-argraw(int n)
-{
-  struct proc *p = myproc();
-  switch (n) {
-  case 0:
-    return p->trapframe->a0;
-  case 1:
-    return p->trapframe->a1;
-  case 2:
-    return p->trapframe->a2;
-  case 3:
-    return p->trapframe->a3;
-  case 4:
-    return p->trapframe->a4;
-  case 5:
-    return p->trapframe->a5;
+  for(fd = 0; fd < NOFILE; fd++){
+    if(p->ofile[fd] == 0){
+      p->ofile[fd] = f;
+      return fd;
+    }
   }
-  panic("argraw");
   return -1;
 }
 
-// Fetch the nth 32-bit system call argument.
-int
-argint(int n, int *ip)
+uint64
+sys_dup(void)
 {
-  *ip = argraw(n);
-  return 0;
-}
+  struct file *f;
+  int fd;
 
-// Retrieve an argument as a pointer.
-// Doesn't check for legality, since
-// copyin/copyout will do that.
-int
-argaddr(int n, uint64 *ip)
-{
-  *ip = argraw(n);
-  return 0;
-}
-
-// Fetch the nth word-sized system call argument as a null-terminated string.
-// Copies into buf, at most max.
-// Returns string length if OK (including nul), -1 if error.
-int
-argstr(int n, char *buf, int max)
-{
-  uint64 addr;
-  if(argaddr(n, &addr) < 0)
+  if(argfd(0, 0, &f) < 0)
     return -1;
-  return fetchstr(addr, buf, max);
+  if((fd=fdalloc(f)) < 0)
+    return -1;
+  filedup(f);
+  return fd;
 }
 
-extern uint64 sys_chdir(void);
-extern uint64 sys_close(void);
-extern uint64 sys_dup(void);
-extern uint64 sys_exec(void);
-extern uint64 sys_exit(void);
-extern uint64 sys_fork(void);
-extern uint64 sys_fstat(void);
-extern uint64 sys_getpid(void);
-extern uint64 sys_kill(void);
-extern uint64 sys_link(void);
-extern uint64 sys_mkdir(void);
-extern uint64 sys_mknod(void);
-extern uint64 sys_open(void);
-extern uint64 sys_pipe(void);
-extern uint64 sys_read(void);
-extern uint64 sys_sbrk(void);
-extern uint64 sys_sleep(void);
-extern uint64 sys_unlink(void);
-extern uint64 sys_wait(void);
-extern uint64 sys_write(void);
-extern uint64 sys_uptime(void);
-extern uint64 sys_getprocs(void);
-
-
-static uint64 (*syscalls[])(void) = {
-[SYS_fork]    sys_fork,
-[SYS_exit]    sys_exit,
-[SYS_wait]    sys_wait,
-[SYS_pipe]    sys_pipe,
-[SYS_read]    sys_read,
-[SYS_kill]    sys_kill,
-[SYS_exec]    sys_exec,
-[SYS_fstat]   sys_fstat,
-[SYS_chdir]   sys_chdir,
-[SYS_dup]     sys_dup,
-[SYS_getpid]  sys_getpid,
-[SYS_sbrk]    sys_sbrk,
-[SYS_sleep]   sys_sleep,
-[SYS_uptime]  sys_uptime,
-[SYS_open]    sys_open,
-[SYS_write]   sys_write,
-[SYS_mknod]   sys_mknod,
-[SYS_unlink]  sys_unlink,
-[SYS_link]    sys_link,
-[SYS_mkdir]   sys_mkdir,
-[SYS_close]   sys_close,
-[SYS_getprocs]   sys_getprocs,
-};
-
-void
-syscall(void)
+uint64
+sys_read(void)
 {
-  int num;
+  struct file *f;
+  int n;
+  uint64 p;
+
+  if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argaddr(1, &p) < 0)
+    return -1;
+  return fileread(f, p, n);
+}
+
+uint64
+sys_write(void)
+{
+  struct file *f;
+  int n;
+  uint64 p;
+
+  if(argfd(0, 0, &f) < 0 || argint(2, &n) < 0 || argaddr(1, &p) < 0)
+    return -1;
+
+  return filewrite(f, p, n);
+}
+
+uint64
+sys_close(void)
+{
+  int fd;
+  struct file *f;
+
+  if(argfd(0, &fd, &f) < 0)
+    return -1;
+  myproc()->ofile[fd] = 0;
+  fileclose(f);
+  return 0;
+}
+
+uint64
+sys_fstat(void)
+{
+  struct file *f;
+  uint64 st; // user pointer to struct stat
+
+  if(argfd(0, 0, &f) < 0 || argaddr(1, &st) < 0)
+    return -1;
+  return filestat(f, st);
+}
+
+// Create the path new as a link to the same inode as old.
+uint64
+sys_link(void)
+{
+  char name[DIRSIZ], new[MAXPATH], old[MAXPATH];
+  struct inode *dp, *ip;
+
+  if(argstr(0, old, MAXPATH) < 0 || argstr(1, new, MAXPATH) < 0)
+    return -1;
+
+  begin_op();
+  if((ip = namei(old)) == 0){
+    end_op();
+    return -1;
+  }
+
+  ilock(ip);
+  if(ip->type == T_DIR){
+    iunlockput(ip);
+    end_op();
+    return -1;
+  }
+
+  ip->nlink++;
+  iupdate(ip);
+  iunlock(ip);
+
+  if((dp = nameiparent(new, name)) == 0)
+    goto bad;
+  ilock(dp);
+  if(dp->dev != ip->dev || dirlink(dp, name, ip->inum) < 0){
+    iunlockput(dp);
+    goto bad;
+  }
+  iunlockput(dp);
+  iput(ip);
+
+  end_op();
+
+  return 0;
+
+bad:
+  ilock(ip);
+  ip->nlink--;
+  iupdate(ip);
+  iunlockput(ip);
+  end_op();
+  return -1;
+}
+
+// Is the directory dp empty except for "." and ".." ?
+static int
+isdirempty(struct inode *dp)
+{
+  int off;
+  struct dirent de;
+
+  for(off=2*sizeof(de); off<dp->size; off+=sizeof(de)){
+    if(readi(dp, 0, (uint64)&de, off, sizeof(de)) != sizeof(de))
+      panic("isdirempty: readi");
+    if(de.inum != 0)
+      return 0;
+  }
+  return 1;
+}
+
+uint64
+sys_unlink(void)
+{
+  struct inode *ip, *dp;
+  struct dirent de;
+  char name[DIRSIZ], path[MAXPATH];
+  uint off;
+
+  if(argstr(0, path, MAXPATH) < 0)
+    return -1;
+
+  begin_op();
+  if((dp = nameiparent(path, name)) == 0){
+    end_op();
+    return -1;
+  }
+
+  ilock(dp);
+
+  // Cannot unlink "." or "..".
+  if(namecmp(name, ".") == 0 || namecmp(name, "..") == 0)
+    goto bad;
+
+  if((ip = dirlookup(dp, name, &off)) == 0)
+    goto bad;
+  ilock(ip);
+
+  if(ip->nlink < 1)
+    panic("unlink: nlink < 1");
+  if(ip->type == T_DIR && !isdirempty(ip)){
+    iunlockput(ip);
+    goto bad;
+  }
+
+  memset(&de, 0, sizeof(de));
+  if(writei(dp, 0, (uint64)&de, off, sizeof(de)) != sizeof(de))
+    panic("unlink: writei");
+  if(ip->type == T_DIR){
+    dp->nlink--;
+    iupdate(dp);
+  }
+  iunlockput(dp);
+
+  ip->nlink--;
+  iupdate(ip);
+  iunlockput(ip);
+
+  end_op();
+
+  return 0;
+
+bad:
+  iunlockput(dp);
+  end_op();
+  return -1;
+}
+
+static struct inode*
+create(char *path, short type, short major, short minor)
+{
+  struct inode *ip, *dp;
+  char name[DIRSIZ];
+
+  if((dp = nameiparent(path, name)) == 0)
+    return 0;
+
+  ilock(dp);
+
+  if((ip = dirlookup(dp, name, 0)) != 0){
+    iunlockput(dp);
+    ilock(ip);
+    if(type == T_FILE && (ip->type == T_FILE || ip->type == T_DEVICE))
+      return ip;
+    iunlockput(ip);
+    return 0;
+  }
+
+  if((ip = ialloc(dp->dev, type)) == 0)
+    panic("create: ialloc");
+
+  ilock(ip);
+  ip->major = major;
+  ip->minor = minor;
+  ip->nlink = 1;
+  iupdate(ip);
+
+  if(type == T_DIR){  // Create . and .. entries.
+    dp->nlink++;  // for ".."
+    iupdate(dp);
+    // No ip->nlink++ for ".": avoid cyclic ref count.
+    if(dirlink(ip, ".", ip->inum) < 0 || dirlink(ip, "..", dp->inum) < 0)
+      panic("create dots");
+  }
+
+  if(dirlink(dp, name, ip->inum) < 0)
+    panic("create: dirlink");
+
+  iunlockput(dp);
+
+  return ip;
+}
+
+uint64
+sys_open(void)
+{
+  char path[MAXPATH];
+  int fd, omode;
+  struct file *f;
+  struct inode *ip;
+  int n;
+
+  if((n = argstr(0, path, MAXPATH)) < 0 || argint(1, &omode) < 0)
+    return -1;
+
+  begin_op();
+
+  if(omode & O_CREATE){
+    ip = create(path, T_FILE, 0, 0);
+    if(ip == 0){
+      end_op();
+      return -1;
+    }
+  } else {
+    if((ip = namei(path)) == 0){
+      end_op();
+      return -1;
+    }
+    ilock(ip);
+    if(ip->type == T_DIR && omode != O_RDONLY){
+      iunlockput(ip);
+      end_op();
+      return -1;
+    }
+  }
+
+  if(ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)){
+    iunlockput(ip);
+    end_op();
+    return -1;
+  }
+
+  if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
+    if(f)
+      fileclose(f);
+    iunlockput(ip);
+    end_op();
+    return -1;
+  }
+
+  if(ip->type == T_DEVICE){
+    f->type = FD_DEVICE;
+    f->major = ip->major;
+  } else {
+    f->type = FD_INODE;
+    f->off = 0;
+  }
+  f->ip = ip;
+  f->readable = !(omode & O_WRONLY);
+  f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
+
+  if((omode & O_TRUNC) && ip->type == T_FILE){
+    itrunc(ip);
+  }
+
+  iunlock(ip);
+  end_op();
+
+  return fd;
+}
+
+uint64
+sys_mkdir(void)
+{
+  char path[MAXPATH];
+  struct inode *ip;
+
+  begin_op();
+  if(argstr(0, path, MAXPATH) < 0 || (ip = create(path, T_DIR, 0, 0)) == 0){
+    end_op();
+    return -1;
+  }
+  iunlockput(ip);
+  end_op();
+  return 0;
+}
+
+uint64
+sys_mknod(void)
+{
+  struct inode *ip;
+  char path[MAXPATH];
+  int major, minor;
+
+  begin_op();
+  if((argstr(0, path, MAXPATH)) < 0 ||
+     argint(1, &major) < 0 ||
+     argint(2, &minor) < 0 ||
+     (ip = create(path, T_DEVICE, major, minor)) == 0){
+    end_op();
+    return -1;
+  }
+  iunlockput(ip);
+  end_op();
+  return 0;
+}
+
+uint64
+sys_chdir(void)
+{
+  char path[MAXPATH];
+  struct inode *ip;
+  struct proc *p = myproc();
+  
+  begin_op();
+  if(argstr(0, path, MAXPATH) < 0 || (ip = namei(path)) == 0){
+    end_op();
+    return -1;
+  }
+  ilock(ip);
+  if(ip->type != T_DIR){
+    iunlockput(ip);
+    end_op();
+    return -1;
+  }
+  iunlock(ip);
+  iput(p->cwd);
+  end_op();
+  p->cwd = ip;
+  return 0;
+}
+
+uint64
+sys_exec(void)
+{
+  char path[MAXPATH], *argv[MAXARG];
+  int i;
+  uint64 uargv, uarg;
+
+  if(argstr(0, path, MAXPATH) < 0 || argaddr(1, &uargv) < 0){
+    return -1;
+  }
+  memset(argv, 0, sizeof(argv));
+  for(i=0;; i++){
+    if(i >= NELEM(argv)){
+      goto bad;
+    }
+    if(fetchaddr(uargv+sizeof(uint64)*i, (uint64*)&uarg) < 0){
+      goto bad;
+    }
+    if(uarg == 0){
+      argv[i] = 0;
+      break;
+    }
+    argv[i] = kalloc();
+    if(argv[i] == 0)
+      goto bad;
+    if(fetchstr(uarg, argv[i], PGSIZE) < 0)
+      goto bad;
+  }
+
+  int ret = exec(path, argv);
+
+  for(i = 0; i < NELEM(argv) && argv[i] != 0; i++)
+    kfree(argv[i]);
+
+  return ret;
+
+ bad:
+  for(i = 0; i < NELEM(argv) && argv[i] != 0; i++)
+    kfree(argv[i]);
+  return -1;
+}
+
+uint64
+sys_pipe(void)
+{
+  uint64 fdarray; // user pointer to array of two integers
+  struct file *rf, *wf;
+  int fd0, fd1;
   struct proc *p = myproc();
 
-  num = p->trapframe->a7;
-  if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    p->trapframe->a0 = syscalls[num]();
-  } else {
-    printf("%d %s: unknown sys call %d\n",
-            p->pid, p->name, num);
-    p->trapframe->a0 = -1;
+  if(argaddr(0, &fdarray) < 0)
+    return -1;
+  if(pipealloc(&rf, &wf) < 0)
+    return -1;
+  fd0 = -1;
+  if((fd0 = fdalloc(rf)) < 0 || (fd1 = fdalloc(wf)) < 0){
+    if(fd0 >= 0)
+      p->ofile[fd0] = 0;
+    fileclose(rf);
+    fileclose(wf);
+    return -1;
   }
+  if(copyout(p->pagetable, fdarray, (char*)&fd0, sizeof(fd0)) < 0 ||
+     copyout(p->pagetable, fdarray+sizeof(fd0), (char *)&fd1, sizeof(fd1)) < 0){
+    p->ofile[fd0] = 0;
+    p->ofile[fd1] = 0;
+    fileclose(rf);
+    fileclose(wf);
+    return -1;
+  }
+  return 0;
+}
+
+// Create a new mapped memory region
+uint64
+sys_mmap()
+{
+  uint64 length;
+  int    prot;
+  int    flags;
+  struct proc *p = myproc();
+  struct mmr *newmmr = 0;
+  uint64 start_addr;
+
+  /* Add error checking for length, prot, and flags arguments */
+
+  if (argaddr(1, &length) < 0 || length <= 0)
+    return -1;
+  if (argint(2, &prot) < 0 || (prot & ~(PROT_READ | PROT_WRITE)) != 0)
+    return -1;
+  if (argint(3, &flags) <0 || (flags & ~(MAP_SHARED| MAP_PRIVATE | MAP_ANONYMOUS)) != 0)
+    return -1;
+  // Search p->mmr[] for unused location 
+  for (int i = 0; i < MAX_MMR; i++) {
+    if (p->mmr[i].valid == 0) {
+      newmmr = &(p->mmr[i]);
+      break;
+    }
+  }
+  // Fill in struct mmr fields for new mapped region
+  if (newmmr) {
+    /* Calculate the start address of the new mapped region, make sure it starts on a page boundary */
+    start_addr = PGROUNDDOWN(p->cur_max - length);
+    newmmr->valid = 1;
+    newmmr->addr = start_addr;
+    newmmr->length = p->cur_max - start_addr;
+    newmmr->prot = prot;
+    newmmr->flags = flags;
+    newmmr->mmr_family.proc = p;
+    newmmr->mmr_family.next = &(newmmr->mmr_family);  // next points to its own mmr_node
+    newmmr->mmr_family.prev = &(newmmr->mmr_family);  // prev points to its own mmr_node
+    // Allocate page table pages if needed
+    if (mapvpages(p->pagetable, newmmr->addr, newmmr->length) < 0) {
+      newmmr->valid = 0;
+      return -1;
+    }
+    if (flags & MAP_SHARED)    // start an mmr_list if region is shared
+      newmmr->mmr_family.listid = alloc_mmr_listid();
+    p->cur_max = start_addr;
+    return start_addr;
+  } else {
+    return -1;
+  }
+}
+
+// Unmap memory region if it exists
+// Free physical memory if no other process has the region mapped
+int
+munmap(uint64 addr, uint64 length)
+{
+  struct proc *p = myproc();
+  struct mmr *mmr = 0;
+  int dofree = 0;
+  int i;
+
+  // Search proc->mmr for addr
+  for (i = 0; i < MAX_MMR; i++)
+    if ((p->mmr[i].valid == 1) && (addr == p->mmr[i].addr) &&
+        (PGROUNDUP(length) == p->mmr[i].length)) {
+      mmr = &(p->mmr[i]);
+      break;
+    }
+  if (!mmr) {
+    return -1;
+  }
+  mmr->valid = 0;
+  if (mmr->flags & MAP_PRIVATE)
+    dofree = 1;
+  else { // MAP_SHARED
+    struct mmr_list *pmmrlist = get_mmr_list(mmr->mmr_family.listid);
+    acquire(&pmmrlist->lock);
+    if (mmr->mmr_family.next == &(mmr->mmr_family)) { // no other family members
+      dofree = 1;
+      release(&pmmrlist->lock);
+      dealloc_mmr_listid(mmr->mmr_family.listid);
+    } else {  // remove p from mmr family
+      (mmr->mmr_family.next)->prev = mmr->mmr_family.prev;
+      (mmr->mmr_family.prev)->next = mmr->mmr_family.next;
+      release(&pmmrlist->lock);
+    }
+  }
+  // Remove mappings from page table
+  // Also free physical memory if no other process has this region mapped
+  for (uint64 pageaddr = addr; pageaddr < p->mmr[i].addr+p->mmr[i].length; pageaddr += PGSIZE) {
+    if (walkaddr(p->pagetable, pageaddr)) {
+      uvmunmap(p->pagetable, pageaddr, 1, dofree);
+    }
+  }
+  return 0;
+}
+
+
+// Get arguments and call munmap() helper function
+uint64
+sys_munmap(void)
+{
+  uint64 addr;
+  uint64 length;
+
+  
+  /****
+   Your code goes here
+  ****/
+  if(argaddr(0, &addr) < 0 || argaddr(1, &length) < 0){
+    return -1;
+  }
+
+  int result = munmap(addr,length);
+  return result;
 }
