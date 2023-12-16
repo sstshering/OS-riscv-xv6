@@ -126,21 +126,44 @@ sys_fstat(void)
   if (argstr(0, path, MAXPATH) < 0)
     return -1;
 
+  // Use namei to get the struct inode corresponding to the path
   struct inode *ip;
   if ((ip = namei(path)) == 0)
     return -1;
 
-  if (filestat(f, (uint64)&st) < 0)
+  // Create a new struct file and associate it with the obtained inode
+  if ((f = filealloc()) == 0) {
+    iput(ip); // Release the inode if file allocation fails
     return -1;
+  }
+  iunlock(ip); // Release the inode lock
 
-  printf("File: %s\n", f);
+  // Associate the file structure with the obtained inode
+  f->type = FD_INODE;
+  f->ip = ip;
+  f->off = 0;
+  f->readable = 1;  // Assuming you want it to be readable
+  f->writable = 0; // Assuming you don't want it to be writable
+
+  // Call filestat to get file information
+  if (filestat(f, (uint64)&st) < 0) {
+    fileclose(f); // Release the file structure if filestat fails
+    return -1;
+  }
+
+  // Print the information
+  printf("File: %s\n", path);
   printf("Type: %s\n", (st.type == T_FILE) ? "Regular File" : "Directory");
   printf("Size: %d bytes\n", st.size);
   printf("Inode: %d\n", st.ino);
   printf("Links: %d\n", st.nlink);
 
+  // Release the file structure
+  fileclose(f);
+
   return 0;
 }
+
 
 // Create the path new as a link to the same inode as old.
 uint64
