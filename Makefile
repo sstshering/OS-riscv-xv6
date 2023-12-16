@@ -135,7 +135,6 @@ UPROGS=\
 	$U/_uptime\
     $U/_sleep\
     $U/_time\
-	$U/_freepmem\
 	$U/_free\
 	$U/_memory-user\
 	$U/_private\
