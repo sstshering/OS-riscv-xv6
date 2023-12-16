@@ -73,7 +73,6 @@ endif
 
 LDFLAGS = -z max-page-size=4096
 $K/sysfile.o: $K/sysfile.c $K/defs.h $K/param.h
-
 $K/kernel: $(OBJS) $K/kernel.ld $U/initcode
 	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) 
 	$(OBJDUMP) -S $K/kernel > $K/kernel.asm
@@ -134,8 +133,9 @@ UPROGS=\
 	$U/_wc\
 	$U/_zombie\
 	$U/_uptime\
-    $U/_time\
     $U/_sleep\
+    $U/_time\
+	$U/_freepmem\
 	$U/_free\
 	$U/_memory-user\
 	$U/_private\
