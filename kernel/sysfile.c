@@ -119,20 +119,20 @@ sys_close(void)
 uint64
 sys_fstat(void)
 {
-  char *path;
-  struct stat st;
+  char path[MAXPATH];
+  struct stat *st;
 
-  if (argstr(0, &path, MAXPATH) < 0)
+  if (argstr(0, path, MAXPATH) < 0)
     return -1;
 
   if (filestat(path, &st) < 0)
     return -1;
 
-  cprintf("File: %s\n", path);
-  cprintf("Type: %s\n", (st.type == T_FILE) ? "Regular File" : "Directory");
-  cprintf("Size: %d bytes\n", st.size);
-  cprintf("Inode: %d\n", st.ino);
-  cprintf("Links: %d\n", st.nlink);
+  printf("File: %s\n", path);
+  printf("Type: %s\n", (st.type == T_FILE) ? "Regular File" : "Directory");
+  printf("Size: %d bytes\n", st.size);
+  printf("Inode: %d\n", st.ino);
+  printf("Links: %d\n", st.nlink);
 
   return 0;
 }
