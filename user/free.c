@@ -16,5 +16,8 @@ main(int argc, char *argv[])
 	    break;
 	}
     }
+
+    printf("%l\n", divisor);
+
     exit(0);
 }
