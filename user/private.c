@@ -1,7 +1,7 @@
 #include "kernel/types.h"
 #include "user/user.h"
 #include "kernel/stat.h"
-#include "kernel/defs.h"
+#include "kernel/syscall.h"
 
 #define BSIZE 10
 #define MAX 10
