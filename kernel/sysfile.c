@@ -121,12 +121,15 @@ sys_fstat(void)
 {
   char path[MAXPATH];
   struct file *f;
-  uint64 st;
+  struct stat st;
 
   if (argstr(0, path, MAXPATH) < 0)
     return -1;
 
-  if (filestat(f, st) < 0)
+  if ((f = namei(path)) == 0)
+    return -1;
+
+  if (filestat(f, (uint64)&st) < 0)
     return -1;
 
   printf("File: %s\n", f);
