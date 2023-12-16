@@ -126,23 +126,7 @@ sys_fstat(void)
   if (argstr(0, path, MAXPATH) < 0)
     return -1;
 
-  struct inode *ip;
-  if ((ip = namei(path)) == 0)
-    return -1;
-
-  if ((f = filealloc()) == 0) {
-    iput(ip); 
-    return -1;
-  }
-  iunlock(ip);
-
-  f->type = FD_INODE;
-  f->ip = ip;
-  f->off = 0;
-  f->readable = 1;  
-  f->writable = 0; 
-  
-  if (filestat(f, (uint64)&st) < 0)
+  if (filestat(f, uint64(&st)) < 0)
     return -1;
 
   printf("File: %s\n", f);
