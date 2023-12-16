@@ -80,8 +80,43 @@ struct trapframe {
   /* 280 */ uint64 t6;
 };
 
+// Task 1a
+struct mmr_list
+{
+  struct spinlock lock;
+  int valid;
+};
+
+struct mmr_node
+{
+  int listid;
+  struct proc *proc;
+  struct mmr_node *next;
+  struct mmr_node *prev;
+};
+
+struct mmr
+{
+  uint64 addr;
+  int length;
+  int prot;
+  int flags;
+  int valid;
+  struct file *file;
+  int fd;
+  struct mmr_node mmr_family;
+};
+
+
 // Per-process state
 struct proc {
+
+  int cputime;
+
+  int priority;
+
+  int readytime;
+
   struct spinlock lock;
 
   // p->lock must be held when using these:
@@ -103,4 +138,8 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  struct mmr mmr[MAX_MMR];
+  uint64 cur_max;
+
 };
