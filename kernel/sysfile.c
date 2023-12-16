@@ -120,15 +120,16 @@ uint64
 sys_fstat(void)
 {
   char path[MAXPATH];
-  struct stat *st;
+  struct file *f;
+  uint64 st;
 
   if (argstr(0, path, MAXPATH) < 0)
     return -1;
 
-  if (filestat(path, &st) < 0)
+  if (filestat(f, st) < 0)
     return -1;
 
-  printf("File: %s\n", path);
+  printf("File: %s\n", f);
   printf("Type: %s\n", (st.type == T_FILE) ? "Regular File" : "Directory");
   printf("Size: %d bytes\n", st.size);
   printf("Inode: %d\n", st.ino);
