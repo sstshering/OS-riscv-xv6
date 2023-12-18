@@ -1,3 +1,4 @@
+#include "types.h"
 #define NSEM 100
 // Mutual exclusion lock.
 struct spinlock {
